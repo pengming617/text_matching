@@ -35,7 +35,7 @@ class Data_Prepare(object):
             temp[int(x)] = 1
             tags_vec.append(temp)
         print(dicts)
-        return texta_new[:5000], textb_new[:5000], tags_vec[:5000]
+        return texta_new, textb_new, tags_vec
 
     def pre_processing(self, text):
         # 删除（）里的内容
