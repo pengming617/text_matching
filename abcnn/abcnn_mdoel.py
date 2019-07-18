@@ -14,7 +14,8 @@ DEFAULT_CONFIG = [{'type': 'ABCNN-1', 'w': 3, 'n': 50, 'nl': 'tanh'} for _ in ra
 
 class ABCNN:
 
-    def __init__(self, is_trainning, conv_layers, embed_size, vocabulary_size, sentence_len, external_measures=0, config=DEFAULT_CONFIG):
+    def __init__(self, is_trainning, learning_rate, conv_layers, embed_size, vocabulary_size, sentence_len,  config,
+                 external_measures=0):
         self.conv_layers = conv_layers
         self.embed_size = embed_size
         self.vocabulary_size = vocabulary_size
@@ -28,6 +29,7 @@ class ABCNN:
         with tf.name_scope("data"):
             self.text_a = tf.placeholder(tf.int32, shape=[None, self.sentence_len], name='text_a')
             self.text_b = tf.placeholder(tf.int32, shape=[None, self.sentence_len], name='text_b')
+            self.dropout_keep_prob = tf.placeholder(tf.float32, name="dropout_keep_prob")
             if self.external_measures > 0:
                 self.ext = tf.placeholder(tf.float32, shape=[None, self.external_measures], name='ext_measure')
             self.y = tf.placeholder(tf.int32, shape=[None, 2], name="y")
@@ -67,20 +69,21 @@ class ABCNN:
                 fc_in = tf.concat([layer_input[0], layer_input[1], self.ext], axis=1)
             else:
                 fc_in = tf.concat([layer_input[0], layer_input[1]], axis=1)
+            self.fc_in = tf.nn.dropout(fc_in, keep_prob=self.dropout_keep_prob)
             w = tf.Variable(tf.truncated_normal([fc_in.get_shape().as_list()[1], 2], stddev=0.1, dtype=tf.float32),
                             name='weights')
             b = tf.Variable(tf.zeros([2], dtype=tf.float32), name="bias")
 
-            logits = tf.matmul(fc_in, w) + b
+            self.logits = tf.matmul(self.fc_in, w) + b
 
         with tf.name_scope('loss'):
-            self.cross_entropy = tf.nn.softmax_cross_entropy_with_logits_v2(labels=self.y, logits=logits)
+            self.cross_entropy = tf.nn.softmax_cross_entropy_with_logits_v2(labels=self.y, logits=self.logits)
             self.cross_entropy = tf.reduce_mean(self.cross_entropy)
             weights = [v for v in tf.trainable_variables() if ('w' in v.name) or ('kernel' in v.name)]
             l2_loss = tf.add_n([tf.nn.l2_loss(w) for w in weights]) * 0.01
             self.loss = l2_loss + self.cross_entropy
 
-        self.score = tf.nn.softmax(logits, name='score')
+        self.score = tf.nn.softmax(self.logits, name='score')
         self.prediction = tf.argmax(self.score, 1, name="prediction")
 
         self.accuracy = tf.reduce_mean(
@@ -89,8 +92,11 @@ class ABCNN:
         if not self.is_trainning:
             return
 
-        optimizer = tf.train.AdamOptimizer()
-        self.train_op = optimizer.minimize(self.loss, global_step=self.global_step, name='train_step')
+        tvars = tf.trainable_variables()
+        grads, _ = tf.clip_by_global_norm(tf.gradients(self.loss, tvars), 5)
+
+        optimizer = tf.train.AdamOptimizer(learning_rate)
+        self.train_op = optimizer.apply_gradients(zip(grads, tvars))
 
     def _conv_layer(self, config, input):
         kernel = tf.get_variable('kernel', [input.get_shape()[1], config['w'], input.get_shape()[3], config['n']],
@@ -277,6 +283,3 @@ class ABCNN:
                                                name='avg_pool2')
                     return avg_pool1, avg_pool2
 
-
-if __name__ == '__main__':
-    c = ABCNN(True, conv_layers=3, embed_size=50, vocabulary_size=1000, sentence_len=40)
