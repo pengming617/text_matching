@@ -51,9 +51,10 @@ class TrainModel(object):
         # 定义训练用的循环神经网络模型
         with tf.variable_scope('model', reuse=None):
             # abcnn
-            model = abcnn_mdoel.ABCNN(True, len(train_texta_embedding[0]), 3, con.l2_lambda,
-                                      'ABCNN2', vocabulary_size=len(self.vocab_processor.vocabulary_),
-                                      d0=con.embedding_size, di=50, num_classes=2, num_layers=2)
+            DEFAULT_CONFIG = [{'type': 'ABCNN-1', 'w': 3, 'n': 50, 'nl': 'tanh'} for _ in range(3)]
+            model = abcnn_mdoel.ABCNN(True, conv_layers=3, embed_size=con.embedding_size,
+                                      vocabulary_size=len(self.vocab_processor.vocabulary_),
+                                      sentence_len=len(train_texta_embedding[0]), config=DEFAULT_CONFIG)
 
         # 训练模型
         session_conf = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
