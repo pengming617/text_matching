@@ -26,9 +26,8 @@ class Infer(object):
                 saver.restore(self.sess, self.checkpoint_file)
 
                 # Get the placeholders from the graph by name
-                self.text_a = graph.get_operation_by_name("data/text_a").outputs[0]
-                self.text_b = graph.get_operation_by_name("data/text_b").outputs[0]
-                self.drop_keep_prob = graph.get_operation_by_name("data/dropout_keep_prob").outputs[0]
+                self.text_a = graph.get_operation_by_name("text_a").outputs[0]
+                self.text_b = graph.get_operation_by_name("text_b").outputs[0]
 
                 # Tensors we want to evaluate
                 self.prediction = graph.get_operation_by_name("prediction").outputs[0]
@@ -42,8 +41,7 @@ class Infer(object):
         vector_B = np.array(list(self.vocab_processor.transform(sentenceB)))
         feed_dict = {
             self.text_a: vector_A,
-            self.text_b: vector_B,
-            self.drop_keep_prob: 1.0
+            self.text_b: vector_B
         }
         y, s = self.sess.run([self.prediction, self.score], feed_dict)
         return y, s
