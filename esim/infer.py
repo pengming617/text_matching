@@ -2,8 +2,10 @@ import tensorflow.contrib.learn as learn
 import tensorflow as tf
 import numpy as np
 import data_prepare
+import os
 
 data_pre = data_prepare.Data_Prepare()
+parent_path = os.path.dirname(os.getcwd())
 
 
 class Infer(object):
@@ -11,8 +13,9 @@ class Infer(object):
         ues model to predict classification.
     """
     def __init__(self):
-        self.vocab_processor = learn.preprocessing.VocabularyProcessor.restore('save_model/vocab.pickle')
-        self.checkpoint_file = tf.train.latest_checkpoint('save_model')
+        self.vocab_processor = learn.preprocessing.VocabularyProcessor.restore(parent_path+'/save_model'+
+                                                                               '/esim/vocab.pickle')
+        self.checkpoint_file = tf.train.latest_checkpoint(parent_path+'/save_model' + '/esim')
         graph = tf.Graph()
         with graph.as_default():
             session_conf = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
@@ -55,10 +58,3 @@ if __name__ == '__main__':
     sentencea = '你点击详情'
     sentenceb = '您点击详情'
     print(infer.infer(sentencea, sentenceb))
-
-
-
-
-
-
-
