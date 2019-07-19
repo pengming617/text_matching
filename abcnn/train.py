@@ -3,6 +3,7 @@ import data_prepare
 from tensorflow.contrib import learn
 import numpy as np
 from abcnn import abcnn_mdoel
+from abcnn import abcnn_mdoel_pre
 import config as config
 from tqdm import tqdm
 from sklearn.metrics import f1_score
@@ -34,8 +35,8 @@ class TrainModel(object):
         dev_texta, dev_textb, dev_tag = data_pre.readfile(parent_path+'/data/dev.txt')
         dev_texta_embedding = np.array(list(self.vocab_processor.transform(dev_texta)))
         dev_textb_embedding = np.array(list(self.vocab_processor.transform(dev_textb)))
-        return train_texta_embedding[:1000], train_textb_embedding[:1000], np.array(train_tag)[:1000], \
-               dev_texta_embedding[:1000], dev_textb_embedding[:1000], np.array(dev_tag)[:1000]
+        return train_texta_embedding, train_textb_embedding, np.array(train_tag), \
+               dev_texta_embedding, dev_textb_embedding, np.array(dev_tag)
 
     def get_batches(self, texta, textb, tag):
         num_batch = int(len(texta) / con.Batch_Size)
@@ -48,13 +49,16 @@ class TrainModel(object):
     def trainModel(self):
         train_texta_embedding, train_textb_embedding, train_tag, \
         dev_texta_embedding, dev_textb_embedding, dev_tag = self.pre_processing()
+
         # 定义训练用的循环神经网络模型
-        with tf.variable_scope('model', reuse=None):
-            # abcnn
-            DEFAULT_CONFIG = [{'type': 'ABCNN-1', 'w': 3, 'n': 50, 'nl': 'tanh'} for _ in range(3)]
-            model = abcnn_mdoel.ABCNN(True, learning_rate=con.learning_rate, conv_layers=3, embed_size=con.embedding_size,
-                                      vocabulary_size=len(self.vocab_processor.vocabulary_),
-                                      sentence_len=len(train_texta_embedding[0]), config=DEFAULT_CONFIG)
+        # abcnn
+        # DEFAULT_CONFIG = [{'type': 'ABCNN-1', 'w': 3, 'n': 50, 'nl': 'tanh'} for _ in range(3)]
+        # model = abcnn_mdoel.ABCNN(True, learning_rate=con.learning_rate, conv_layers=1, embed_size=con.embedding_size,
+        #                           vocabulary_size=len(self.vocab_processor.vocabulary_),
+        #                           sentence_len=len(train_texta_embedding[0]), config=DEFAULT_CONFIG)
+        model = abcnn_mdoel_pre.ABCNN(True, len(train_texta_embedding[0]), 3, con.l2_lambda, 'ABCNN3',
+                                      vocabulary_size=len(self.vocab_processor.vocabulary_), d0=con.embedding_size,
+                                      di=50, num_classes=2, num_layers=1)
 
         # 训练模型
         session_conf = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
@@ -73,8 +77,7 @@ class TrainModel(object):
                     feed_dict = {
                         model.text_a: texta,
                         model.text_b: textb,
-                        model.y: tag,
-                        model.dropout_keep_prob: con.dropout_keep_prob
+                        model.y: tag
                     }
                     _, cost, accuracy = sess.run([model.train_op, model.loss, model.accuracy], feed_dict)
                     loss_all.append(cost)
@@ -95,8 +98,7 @@ class TrainModel(object):
                         feed_dict = {
                             model.text_a: texta,
                             model.text_b: textb,
-                            model.y: tag,
-                            model.dropout_keep_prob: 1.0
+                            model.y: tag
                         }
                         dev_cost, dev_accuracy, prediction = sess.run([model.loss, model.accuracy,
                                                                        model.prediction], feed_dict)
