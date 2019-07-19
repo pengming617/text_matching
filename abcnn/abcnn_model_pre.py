@@ -34,8 +34,8 @@ class ABCNN():
             self.x1 = tf.nn.embedding_lookup(self.vocab_matrix, self.text_a)
             self.x2 = tf.nn.embedding_lookup(self.vocab_matrix, self.text_b)
 
-        self.x2 = tf.transpose(self.x2, [0, 2, 1])
         self.x1 = tf.transpose(self.x1, [0, 2, 1])
+        self.x2 = tf.transpose(self.x2, [0, 2, 1])
 
         # zero padding to inputs for wide convolution
         def pad_for_wide_conv(x):
@@ -56,8 +56,14 @@ class ABCNN():
             # x1, x2 = [batch, height, width, 1] = [batch, d, s, 1]
             # x2 => [batch, height, 1, width]
             # [batch, width, wdith] = [batch, s, s]
-            euclidean = tf.sqrt(tf.reduce_sum(tf.square(x1 - tf.matrix_transpose(x2)), axis=1))
-            return 1 / (1 + euclidean)
+
+            # 作者论文中提出计算attention的方法 在实际过程中反向传播计算梯度时 容易出现NaN的情况 这里面加以修改
+            # euclidean = tf.sqrt(tf.reduce_sum(tf.square(x1 - tf.matrix_transpose(x2)), axis=1))
+            # return 1 / (1 + euclidean)
+
+            x1 = tf.transpose(tf.squeeze(x1, [-1]), [0, 2, 1])
+            attention = tf.einsum("ijk,ikl->ijl", x1, tf.squeeze(x2, [-1]))
+            return attention
 
         def convolution(name_scope, x, d, reuse):
             with tf.name_scope(name_scope + "-conv"):
@@ -149,6 +155,8 @@ class ABCNN():
 
                         # [batch, s, s]
                         att_mat = make_attention_mat(x1, x2)
+                        # att_mat = tf.get_variable('att_mat', [None, x1.get_shape()[2], x1.get_shape()[2]],
+                        #             initializer=tf.contrib.layers.xavier_initializer(), dtype=tf.float32)
 
                         # [batch, s, s] * [s,d] => [batch, s, d]
                         # matrix transpose => [batch, d, s]
@@ -234,4 +242,4 @@ class ABCNN():
 
 
 if __name__ == '__main__':
-    abcnn = ABCNN(True, 20, 3, 0.001, 'ABCNN1', vocabulary_size=1000, d0=300, di=50, num_classes=2, num_layers=2)
+    abcnn = ABCNN(True, 20, 3, 0.001, 'ABCNN1', vocabulary_size=1000, d0=300, di=50, num_classes=2, num_layers=1)
