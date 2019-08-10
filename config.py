@@ -3,8 +3,8 @@ class Config(object):
     def __init__(self):
         self.embedding_size = 50  # 词向量维度
         self.hidden_num = 100  # 隐藏层规模
-        self.l2_lambda = 0.01
-        self.learning_rate = 0.001
+        self.l2_lambda = 0.0
+        self.learning_rate = 0.01
         self.dropout_keep_prob = 0.5
         self.attn_size = 200
         self.K = 2
