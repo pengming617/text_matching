@@ -41,8 +41,7 @@ class ESIM(object):
             with tf.name_scope('word_similarity'):
                 attention_weights = tf.matmul(a_bar, tf.transpose(b_bar, [0, 2, 1]))
                 attentionsoft_a = tf.nn.softmax(attention_weights)
-                attentionsoft_b = tf.nn.softmax(tf.transpose(attention_weights))
-                attentionsoft_b = tf.transpose(attentionsoft_b)
+                attentionsoft_b = tf.nn.softmax(tf.transpose(attention_weights, [0, 2, 1]))
                 a_hat = tf.matmul(attentionsoft_a, b_bar)
                 b_hat = tf.matmul(attentionsoft_b, a_bar)
 
