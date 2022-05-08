@@ -14,8 +14,4 @@ ABCNN: Attention-Based Convolutional Neural Network for Modeling Sentence Pairs
 BIMPM
 bilateral multi-perspective matching for natural language sentences
 
-顺带介绍料WMD的相关知识
-
-模型的具体解析在 语义匹配.pdf中  纯属个人学习所用
-
-论文及在papers文件夹中
+论文及papers在文件夹中
